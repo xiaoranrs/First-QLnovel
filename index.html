@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#2E6BE6">
+<meta name="format-detection" content="telephone=no">
+<title>青蓝小说 · 交互原型</title>
+<link rel="stylesheet" href="css/style.css">
+<style>
+/* 启动页关键样式内联在这里：外链 CSS 加载失败/被拦时也不会白屏裸奔 */
+html,body{margin:0;padding:0;height:100%}
+body{background:#E9EFFB;color:#161B2E;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif}
+#splash{position:fixed;top:0;right:0;bottom:0;left:0;z-index:100;overflow:hidden;
+  background:linear-gradient(160deg,#5B9BFF 0%,#2E6BE6 52%,#2355C4 100%);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff}
+#splash .sp-logo{width:96px;height:96px;border-radius:28px;background:rgba(255,255,255,.16);
+  display:flex;align-items:center;justify-content:center;margin-bottom:22px}
+#splash .sp-name{font-size:26px;font-weight:900;letter-spacing:3px}
+#splash .sp-slogan{font-size:13px;opacity:.86;margin-top:10px;letter-spacing:1px}
+/* 开屏入场动画：logo 轻弹进入 → 标题 → 标语，依次淡入 */
+@keyframes spLogo{ from{ transform:scale(.72); opacity:0 } to{ transform:scale(1); opacity:1 } }
+@keyframes spUp{ from{ transform:translateY(10px); opacity:0 } to{ transform:translateY(0); opacity:1 } }
+#splash .sp-logo{ animation:spLogo .5s cubic-bezier(.2,.9,.3,1.2) both }
+#splash .sp-name{ animation:spUp .42s ease .28s both }
+#splash .sp-slogan{ animation:spUp .42s ease .46s both }
+#stage-caption{display:none}
+@media (min-width:521px) and (min-height:901px){
+  #stage-caption{display:block;font-size:12px;color:#7B8AA6;text-align:center;margin:14px 0 0}
+}
+</style>
+</head>
+<body>
+
+<!-- ===== 桌面端展示外框 ===== -->
+<div id="stage">
+  <div id="phone">
+    <div id="screen">
+
+      <!-- 页面容器 -->
+      <div id="page-root"></div>
+
+      <!-- 底部 Tab -->
+      <nav id="tabbar"></nav>
+
+      <!-- 浮层（弹窗 / 抽屉 / Toast） -->
+      <div id="overlay-root"></div>
+
+      <!-- 启动页 -->
+      <div id="splash">
+        <div class="sp-logo">
+          <svg viewBox="0 0 64 64" width="72" height="72">
+            <defs>
+              <linearGradient id="spg" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#7FC0FF"/><stop offset="1" stop-color="#2E6BE6"/>
+              </linearGradient>
+            </defs>
+            <path d="M32 12c-6-4.4-14-5.6-22-4.6v34c8-1 16 .2 22 4.6 6-4.4 14-5.6 22-4.6v-34c-8-1-16 .2-22 4.6z" fill="url(#spg)"/>
+            <path d="M32 12v34" stroke="#fff" stroke-width="2" opacity=".85" fill="none"/>
+            <path d="M14 17.5c4-.6 8-.4 11.5 1.2M14 25c4-.6 8-.4 11.5 1.2M14 32.5c4-.6 8-.4 11.5 1.2M38 18.7c3.5-1.6 7.5-1.8 11.5-1.2M38 26.2c3.5-1.6 7.5-1.8 11.5-1.2M38 33.7c3.5-1.6 7.5-1.8 11.5-1.2" stroke="#fff" stroke-width="2.2" stroke-linecap="round" opacity=".9" fill="none"/>
+          </svg>
+        </div>
+        <div class="sp-name">青蓝小说</div>
+        <div class="sp-slogan">青春阅读，从这里开始</div>
+      </div>
+
+    </div>
+  </div>
+  <p id="stage-caption">青蓝小说 · 交互原型 &nbsp;|&nbsp; 主色 #2E6BE6 &nbsp;|&nbsp; 封面为 AI 生成图，图标为临时 SVG</p>
+</div>
+<noscript>
+  <div style="position:fixed;top:0;right:0;bottom:0;left:0;background:#2E6BE6;color:#fff;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    font-family:-apple-system,"PingFang SC",sans-serif;z-index:200">
+    <div style="font-size:20px;font-weight:900;letter-spacing:2px">青蓝小说</div>
+    <div style="font-size:13px;opacity:.9;margin-top:12px">请开启 JavaScript 后重新加载</div>
+  </div>
+</noscript>
+<script>
+/* 兼容探测：不支持 aspect-ratio 的浏览器给 <html> 加 .no-ar，走 CSS 里的固定比例兜底 */
+(function () {
+  var ok = false;
+  try {
+    ok = !!(window.CSS && CSS.supports && (CSS.supports('aspect-ratio', '3 / 4') || CSS.supports('aspect-ratio', '3/4')));
+  } catch (e) { ok = false; }
+  if (!ok) document.documentElement.className += ' no-ar';
+})();
+</script>
+<script>
+/* 外链 CSS 兜底：检测 style.css 是否真的生效，失败则注入一份最小可用样式 + 顶部提示。
+   某些浏览器/环境（本地文件被单独转发、隐私模式、CDN 被拦）会加载不到样式表 */
+(function () {
+  /* 检测点必须选“只有外链 style.css 才有”的特征：
+     .book-card 的白底+18px 圆角来自 style.css；内联样式只覆盖启动页与 body 底色，
+     所以不能用 body 背景色判断（会被内联样式蒙混） */
+  function cssOk() {
+    var card = document.querySelector('.book-card');
+    if (!card) return true;              // 页面还没渲染出来，先不折腾
+    var cs = getComputedStyle(card);
+    return cs.backgroundColor === 'rgb(255, 255, 255)' || cs.borderRadius === '18px';
+  }
+  function fallbackCss() {
+    return 'body{background:#F3F6FC!important;color:#161B2E!important;font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif!important}' +
+      '#phone,#screen{width:100%!important;height:100%!important;background:#F3F6FC!important;display:block!important}' +
+      '.page{position:relative!important;display:block!important;background:#F3F6FC!important}' +
+      '.page-body{overflow-y:auto!important;padding-bottom:70px!important}' +
+      '.nav-bar{display:flex!important;align-items:center!important;height:52px!important;padding:0 14px!important;background:#fff!important}' +
+      '.nb-title{font-size:17px!important;font-weight:800!important}' +
+      '.home-head{background:#fff!important}' +
+      '.search-pill{display:flex!important;align-items:center!important;gap:8px!important;height:38px!important;margin:10px 14px!important;padding:0 14px!important;border-radius:999px!important;background:#fff!important}' +
+      '.cat-tabs{display:flex!important;gap:16px!important;overflow-x:auto!important;padding:10px 16px!important;background:#fff!important}' +
+      '.cat-tab{flex:none!important;font-size:14px!important;font-weight:700!important;color:#5A6478!important}' +
+      '.cat-tab.on{color:#1E4FBF!important;font-size:16px!important}' +
+      '.carousel{margin:12px 14px!important;border-radius:18px!important;overflow:hidden!important;position:relative!important}' +
+      '.car-slide{position:relative!important;width:100%!important;height:0!important;padding-top:56.8%!important;overflow:hidden!important}' +
+      '.cs-bg,.cs-poster,.cs-scrim,.cs-inner{position:absolute!important;top:0!important;right:0!important;bottom:0!important;left:0!important}' +
+      '.cs-inner{display:flex!important;flex-direction:column!important;justify-content:center!important;padding:16px!important;color:#fff!important}' +
+      '.cs-tag{font-size:10px!important;font-weight:800!important;background:rgba(255,255,255,.24)!important;padding:3px 9px!important;border-radius:999px!important;align-self:flex-start!important}' +
+      '.cs-t{font-size:19px!important;font-weight:900!important;margin-top:8px!important}' +
+      '.cs-s{font-size:12px!important;margin-top:6px!important;max-width:72%!important}' +
+      '.cs-cta{font-size:11.5px!important;font-weight:800!important;background:#fff!important;color:#1E4FBF!important;padding:5px 13px!important;border-radius:999px!important;align-self:flex-start!important;margin-top:10px!important}' +
+      '.quick-rail{display:flex!important;gap:6px!important;overflow-x:auto!important;padding:10px!important}' +
+      '.quick-item{flex:none!important;width:66px!important;display:flex!important;flex-direction:column!important;align-items:center!important;gap:6px!important;font-size:11px!important}' +
+      '.quick-ic{width:44px!important;height:44px!important;border-radius:14px!important;display:flex!important;align-items:center!important;justify-content:center!important;background:#2E6BE6!important;color:#fff!important}' +
+      '.sec-head{display:flex!important;align-items:baseline!important;justify-content:space-between!important;padding:16px 16px 8px!important}' +
+      '.sec-title{font-size:16px!important;font-weight:800!important}.sec-sub{font-size:11px!important;color:#98A2B8!important}' +
+      '.book-card{display:flex!important;gap:12px!important;padding:12px 14px!important;margin:0 12px 9px!important;border-radius:16px!important;background:#fff!important}' +
+      '.bc-main{flex:1!important;min-width:0!important}' +
+      '.bc-t{font-size:15px!important;font-weight:800!important}' +
+      '.bc-meta{font-size:11px!important;color:#98A2B8!important;margin-top:5px!important}' +
+      '.bc-desc{font-size:12px!important;color:#5A6478!important;margin-top:6px!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}' +
+      '.bc-tags{display:flex!important;gap:6px!important;margin-top:8px!important}' +
+      '.chip{font-size:10px!important;padding:2px 8px!important;border-radius:999px!important;background:#EFF5FF!important;color:#2E6BE6!important}' +
+      '.bc-stats{display:flex!important;gap:12px!important;font-size:11px!important;color:#98A2B8!important;margin-top:8px!important}' +
+      '.grid-3{display:grid!important;grid-template-columns:repeat(3,1fr)!important;gap:12px 10px!important;padding:4px 14px!important}' +
+      '.grid-item{min-width:0!important}.gi-t{font-size:12px!important;font-weight:700!important;margin-top:6px!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}' +
+      '.gi-s{font-size:10px!important;color:#98A2B8!important}' +
+      '.theme-rail{display:flex!important;gap:10px!important;overflow-x:auto!important;padding:4px 14px 12px!important}' +
+      '.theme-card{flex:none!important;width:126px!important}' +
+      '.tc-cover{width:126px!important;height:168px!important;border-radius:14px!important;overflow:hidden!important}' +
+      '.tc-t{font-size:12.5px!important;font-weight:700!important;margin-top:7px!important}' +
+      '#tabbar{position:fixed!important;left:0!important;right:0!important;bottom:0!important;height:56px!important;display:flex!important;background:rgba(255,255,255,.96)!important;border-top:1px solid #EDF1F8!important;z-index:60!important}' +
+      '.tab-item{flex:1!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:3px!important;font-size:10px!important;color:#98A2B8!important}' +
+      '.tab-item.active{color:#2E6BE6!important}' +
+      '.mask{position:fixed!important;top:0!important;right:0!important;bottom:0!important;left:0!important;background:rgba(15,25,50,.45)!important;z-index:80!important}' +
+      '.sheet{position:fixed!important;left:0!important;right:0!important;bottom:0!important;background:#fff!important;border-radius:22px 22px 0 0!important;padding:8px 0 14px!important;z-index:90!important}' +
+      '.sheet-item{display:flex!important;align-items:center!important;gap:10px!important;width:100%!important;padding:13px 18px!important;font-size:14px!important;text-align:left!important}' +
+      '.toast{position:fixed!important;left:50%!important;top:50%!important;transform:translate(-50%,-50%)!important;background:rgba(20,26,44,.86)!important;color:#fff!important;font-size:13px!important;padding:9px 16px!important;border-radius:12px!important;z-index:120!important}' +
+      '.cover{border-radius:12px!important;overflow:hidden!important;position:relative!important}' +
+      '.empty{padding:60px 20px!important;text-align:center!important;color:#98A2B8!important}';
+  }
+  function inject() {
+    var st = document.createElement('style');
+    st.id = 'css-fallback';
+    st.textContent = fallbackCss();
+    (document.head || document.documentElement).appendChild(st);
+    var bar = document.createElement('div');
+    bar.textContent = '样式加载失败，已切换为基础版式，刷新或换个浏览器可恢复完整效果';
+    bar.setAttribute('style', 'position:fixed;left:0;right:0;top:0;z-index:9999;background:#FF9330;color:#fff;' +
+      'font-size:12px;font-weight:700;text-align:center;padding:7px 12px;font-family:-apple-system,"PingFang SC",sans-serif');
+    document.body.appendChild(bar);
+  }
+  function check() { if (!cssOk()) inject(); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', check);
+  else check();
+  window.addEventListener('load', function () { setTimeout(check, 400); });
+})();
+</script>
+
+<script src="js/icons.js"></script>
+<script src="js/data.js"></script>
+<script src="js/store.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/pages/home.js"></script>
+<script src="js/pages/category.js"></script>
+<script src="js/pages/shelf.js"></script>
+<script src="js/pages/rank.js"></script>
+<script src="js/pages/search.js"></script>
+<script src="js/pages/book.js"></script>
+<script src="js/pages/reader.js"></script>
+<script src="js/pages/mine.js"></script>
+<script src="js/pages/tasks.js"></script>
+<script src="js/pages/history.js"></script>
+<script src="js/pages/author.js"></script>
+<script src="js/pages/topic.js"></script>
+<script src="js/pages/settings.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
